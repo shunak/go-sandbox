@@ -3,12 +3,23 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 )
 
 // data structure of wiki
 type Page struct {
 	Title string // title
 	Body  []byte // inner title
+}
+
+// set path address and get string length
+const lenPath = len("/view/")
+
+// response handler
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	title := r.URL.Path[lenPath:]
+	p, _ := loadPage(title)
+	fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.Title, p.Body)
 }
 
 // save method of txt file
@@ -31,8 +42,6 @@ func loadPage(title string) (*Page, error) {
 }
 
 func main() {
-	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
-	p1.save()
-	p2, _ := loadPage("TestPage")
-	fmt.Println(string(p2.Body))
+	http.HandleFunc("/view/", viewHandler)
+	http.ListenAndServe(":8080", nil)
 }
