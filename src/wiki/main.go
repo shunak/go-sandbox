@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 )
@@ -18,8 +18,17 @@ const lenPath = len("/view/")
 // response handler
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.URL.Path[lenPath:]
-	p, _ := loadPage(title)
-	fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.Title, p.Body)
+	p, err := loadPage(title)
+
+	// err handle (when you accessed the notexist page)
+	if err != nil {
+		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
+		return
+	}
+
+	renderTemplate(w, "view", p)
+
+	// fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.Title, p.Body)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,11 +37,29 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		p = &Page{Title: title}
 	}
-	fmt.Fprintf(w, "<h1>Editing %s</h1>"+
-		"<form action=\"/save/%s\" method=\"POST\">"+
-		"<textarea name=\"body\">%s</textarea><br>"+
-		"<input type=\"submit\" value=\"Save\">"+
-		"</form>", p.Title, p.Title, p.Body)
+
+	renderTemplate(w, "edit", p)
+
+	// fmt.Fprintf(w, "<h1>Editing %s</h1>"+
+	// 	"<form action=\"/save/%s\" method=\"POST\">"+
+	// 	"<textarea name=\"body\">%s</textarea><br>"+
+	// 	"<input type=\"submit\" value=\"Save\">"+
+	// 	"</form>", p.Title, p.Title, p.Body)
+}
+
+func saveHandler(w http.ResponseWriter, r *http.Request) {
+	title := r.URL.Path[lenPath:]
+	body := r.FormValue("body")
+	p := &Page{Title: title, Body: []byte(body)}
+	p.save()
+	http.Redirect(w, r, "/view/"+title, http.StatusFound)
+}
+
+func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
+	// read external file (edit.html) by template package of golang
+	t, _ := template.ParseFiles(tmpl + ".html")
+	// Embedd　Title, Body　to edit.html
+	t.Execute(w, p)
 }
 
 // save method of txt file
@@ -57,5 +84,6 @@ func loadPage(title string) (*Page, error) {
 func main() {
 	http.HandleFunc("/view/", viewHandler)
 	http.HandleFunc("/edit/", editHandler) // make edit page
+	http.HandleFunc("/save/", saveHandler)
 	http.ListenAndServe(":8080", nil)
 }
