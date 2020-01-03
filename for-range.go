@@ -10,4 +10,18 @@ func main() {
 		fmt.Printf("i=%d, t=%d\n", i, t)
 	}
 
+
+	strArray := [5]string{"taro", "jiro", "hanako", "ken", "tom"}
+
+	for _, s := range strArray {
+	    fmt.Printf("name: %s\n", s)
+	}
+
+
 }
+
+
+
+
+
+
